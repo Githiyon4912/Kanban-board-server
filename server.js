@@ -1,54 +1,14 @@
 import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
 import http from 'http';
 import { parseCookie } from 'cookie';
 import jwt from 'jsonwebtoken';
 import { Server } from 'socket.io';
+import app, { getAllowedOrigins } from './app.js';
 import { connectDB } from './config/db.js';
-import authRoutes from './routes/authRoutes.js';
-import boardRoutes from './routes/boardRoutes.js';
-import listRoutes from './routes/listRoutes.js';
-import cardRoutes from './routes/cardRoutes.js';
 import { registerBoardSockets } from './sockets/socketHandler.js';
 
-const app = express();
+const allowedOrigins = getAllowedOrigins();
 const server = http.createServer(app);
-
-/** Comma-separated origins in CLIENT_URL, e.g. http://localhost:5173,https://kanbanbordpor.netlify.app */
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
-function isAllowedOrigin(origin) {
-  return !origin || allowedOrigins.includes(origin);
-}
-
-const corsOptions = {
-  origin(origin, callback) {
-    if (isAllowedOrigin(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`Not allowed by CORS: ${origin}`));
-    }
-  },
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
-app.use(express.json());
-app.use(cookieParser());
-
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true });
-});
-
-app.use('/api/auth', authRoutes);
-app.use('/api/boards', boardRoutes);
-app.use('/api/lists', listRoutes);
-app.use('/api/cards', cardRoutes);
 
 const io = new Server(server, {
   cors: {

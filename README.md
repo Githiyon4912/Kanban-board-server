@@ -104,4 +104,34 @@ npm start      # node server.js (production)
 
 ## Deploy notes
 
-Use a **persistent** host (Render, Railway, etc.) — Socket.io does not work well on serverless. Set `CLIENT_URL` to your frontend URL and enable CORS credentials.
+### Vercel (REST API)
+
+This repo includes `api/index.js` + `vercel.json` for Vercel serverless.
+
+Set these environment variables in the Vercel project:
+
+- `MONGO_URI`
+- `JWT_SECRET`
+- `CLIENT_URL=http://localhost:5173,https://kanbanbordpor.netlify.app`
+- `NODE_ENV=production`
+
+**Important:** Socket.io does **not** work reliably on Vercel serverless. Auth/boards/lists/cards REST will work; live sync needs a persistent host (Render/Railway) running `npm start` (`server.js`).
+
+### Persistent host (Render / Railway) — recommended for full app
+
+See **[RENDER.md](./RENDER.md)** for step-by-step Render setup.
+
+```bash
+npm start
+```
+
+Set env:
+
+```env
+NODE_ENV=production
+MONGO_URI=...
+JWT_SECRET=...
+CLIENT_URL=http://localhost:5173,https://kanbanbordpor.netlify.app
+```
+
+Then point Netlify `VITE_API_URL` / `VITE_SOCKET_URL` at your Render URL.
