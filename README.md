@@ -58,7 +58,7 @@ Health check: `GET /api/health` → `{ "ok": true }`
 | `PORT`       | Server port (default `5000`) |
 | `MONGO_URI`  | MongoDB connection string |
 | `JWT_SECRET` | Secret used to sign JWTs |
-| `CLIENT_URL` | Frontend origin for CORS + cookies (e.g. `http://localhost:5173`) |
+| `CLIENT_URL` | Comma-separated frontend origins for CORS (e.g. `http://localhost:5173,https://kanbanbordpor.netlify.app`) |
 | `NODE_ENV`   | `development` or `production` |
 
 ## Main REST routes
