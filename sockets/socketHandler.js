@@ -127,7 +127,16 @@ export function registerBoardSockets(io, socket) {
 
   socket.on('card:create', async (payload, ack) => {
     try {
-      const { listId, title, description = '', dueDate, assignedTo } = payload || {};
+      const {
+        listId,
+        title,
+        description = '',
+        dueDate,
+        assignedTo,
+        labels = [],
+        priority = 'none',
+        checklist = [],
+      } = payload || {};
       if (!listId || !title?.trim()) {
         throw Object.assign(new Error('listId and title are required'), { status: 400 });
       }
@@ -144,8 +153,16 @@ export function registerBoardSockets(io, socket) {
         order,
         dueDate: dueDate || undefined,
         assignedTo: assignee || undefined,
+        labels: Array.isArray(labels) ? labels : [],
+        priority: priority || 'none',
+        checklist: Array.isArray(checklist)
+          ? checklist
+              .filter((item) => item?.text?.trim())
+              .map((item) => ({ text: item.text.trim(), done: Boolean(item.done) }))
+          : [],
       });
       await card.populate('assignedTo', 'name email');
+      await card.populate('comments.author', 'name email');
       const boardId = String(list.boardId);
       socket.to(boardId).emit('card:create', { card, boardId });
       ack?.({ ok: true, card });
@@ -156,7 +173,16 @@ export function registerBoardSockets(io, socket) {
 
   socket.on('card:update', async (payload, ack) => {
     try {
-      const { cardId, title, description, dueDate, assignedTo } = payload || {};
+      const {
+        cardId,
+        title,
+        description,
+        dueDate,
+        assignedTo,
+        labels,
+        priority,
+        checklist,
+      } = payload || {};
       const card = await Card.findById(cardId);
       if (!card) throw Object.assign(new Error('Card not found'), { status: 404 });
       const list = await List.findById(card.listId);
@@ -173,8 +199,43 @@ export function registerBoardSockets(io, socket) {
       if (assignedTo !== undefined) {
         card.assignedTo = await ensureAssigneeOnBoard(board, assignedTo);
       }
+      if (labels !== undefined) card.labels = Array.isArray(labels) ? labels : [];
+      if (priority !== undefined) card.priority = priority || 'none';
+      if (checklist !== undefined && Array.isArray(checklist)) {
+        card.checklist = checklist
+          .filter((item) => item?.text?.trim())
+          .map((item) => ({
+            _id: item._id,
+            text: item.text.trim(),
+            done: Boolean(item.done),
+          }));
+      }
       await card.save();
       await card.populate('assignedTo', 'name email');
+      await card.populate('comments.author', 'name email');
+      const boardId = String(list.boardId);
+      socket.to(boardId).emit('card:update', { card, boardId });
+      ack?.({ ok: true, card });
+    } catch (err) {
+      ackError(ack, err);
+    }
+  });
+
+  socket.on('card:comment', async (payload, ack) => {
+    try {
+      const { cardId, text } = payload || {};
+      if (!text?.trim()) {
+        throw Object.assign(new Error('Comment text is required'), { status: 400 });
+      }
+      const card = await Card.findById(cardId);
+      if (!card) throw Object.assign(new Error('Card not found'), { status: 404 });
+      const list = await List.findById(card.listId);
+      if (!list) throw Object.assign(new Error('List not found'), { status: 404 });
+      await getBoardIfMember(list.boardId, socket.userId);
+      card.comments.push({ text: text.trim(), author: socket.userId });
+      await card.save();
+      await card.populate('assignedTo', 'name email');
+      await card.populate('comments.author', 'name email');
       const boardId = String(list.boardId);
       socket.to(boardId).emit('card:update', { card, boardId });
       ack?.({ ok: true, card });

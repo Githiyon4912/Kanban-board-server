@@ -2,6 +2,7 @@ import Board, { generateInviteCode } from '../models/Board.js';
 import List from '../models/List.js';
 import Card from '../models/Card.js';
 import { getBoardIfMember } from '../utils/boardAccess.js';
+import { getBoardActivities } from '../utils/activityLogger.js';
 
 export async function getBoards(req, res) {
   try {
@@ -53,8 +54,10 @@ export async function getBoardById(req, res) {
     const listIds = lists.map((l) => l._id);
     const cards = await Card.find({ listId: { $in: listIds } })
       .populate('assignedTo', 'name email')
+      .populate('comments.author', 'name email')
       .sort({ order: 1 });
-    res.json({ board, lists, cards });
+    const activities = await getBoardActivities(board._id);
+    res.json({ board, lists, cards, activities });
   } catch (err) {
     res.status(err.status || 500).json({ message: err.message });
   }

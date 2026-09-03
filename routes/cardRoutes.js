@@ -5,12 +5,14 @@ import {
   updateCard,
   deleteCard,
   moveCard,
+  addComment,
 } from '../controllers/cardController.js';
 
 const router = Router();
 router.use(protect);
 router.post('/', createCard);
 router.put('/move', moveCard);
+router.post('/:id/comments', addComment);
 router.patch('/:id', updateCard);
 router.delete('/:id', deleteCard);
 
